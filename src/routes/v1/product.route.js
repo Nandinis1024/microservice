@@ -3,6 +3,10 @@ const Product = require('../../models/product.model');
 const ProductValidity = require('../../models/productValidity.model');
 const ProductPricing = require('../../models/productPricing.model');
 const User = require('../../models/user.model');
+const stripe = require('stripe')('sk_test_51OkvUsSIy7xLF6FWJ2RapUjCxGtrYUvSCBWhRwOiIdl10rclf3wjpApvy9OsLOBSaNjwMuKMYt907XrRAGF6RTQ300FJEj2Aoe');
+const isAdmin = require('../../middlewares/admin');
+
+
 
 
 const router = express.Router();
@@ -59,7 +63,9 @@ const mapBasePrice = (productName, validityInDays) => {
   return basePrice;
 };
 
-router.post('/createProducts', async (req, res) => {
+
+
+router.post('/createProducts', isAdmin, async (req, res) => {
     try {
       const { productName, productDescription, maxActiveUsersCount, validityInDays, maxAbsoluteDiscount} = req.body;
       const newProduct = new Product({
@@ -67,9 +73,10 @@ router.post('/createProducts', async (req, res) => {
         productDescription,
         maxActiveUsersCount,
         createdBy: req.body.userId,
-        updatedBy: req.body.userId
+        updatedBy: req.body.userId,
+        features: req.body.features
       });
-      console.log(req.body);
+      
       const savedProduct = await newProduct.save();
       
       const validityOptionTitle = mapValidityOptionTitle(validityInDays);
@@ -77,6 +84,8 @@ router.post('/createProducts', async (req, res) => {
         productId: savedProduct._id,
         validityInDays,
         validityOptionTitle,
+        createdBy: req.body.userId,
+        updatedBy: req.body.userId
       });
       await newProductValidity.save();
       
@@ -86,6 +95,8 @@ router.post('/createProducts', async (req, res) => {
         productValidityId: newProductValidity._id,
         basePrice,
         maxAbsoluteDiscount,
+        createdBy: req.body.userId,
+        updatedBy: req.body.userId
       });
       await newProductPricing.save();
 
@@ -104,4 +115,89 @@ router.post('/createProducts', async (req, res) => {
     }
     res.status(200).json(user._id);
   })
-  module.exports = router;
+
+  router.get('/getProducts', async (req, res) => {
+    try {
+      const products = await Product.find();
+      res.status(200).json(products);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'wrong!' });
+    }
+  });
+
+  router.get('/getProductsPricing', async (req, res) => {
+    try {
+      const productsPricing = await ProductPricing.find();
+      res.status(200).json(productsPricing);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'wrong!' });
+    }
+  });
+
+  router.get('/getProductsValidity', async (req, res) => {
+    try {
+      const productsValidity = await ProductValidity.find();
+      res.status(200).json(productsValidity);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'wrong!' });
+    }
+  });
+
+  router.patch('/deleteProduct/:productId' , async (req, res) => {
+    try {
+      const product = await Product.findById(req.params.productId);
+      product.isInactive = true;
+      await product.save();
+      res.status(200).json("Product deleted successfully");
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'wrong!' });
+    }
+  });
+
+  router.patch('/visibilityProduct/:productId' , async (req, res) => {
+    try {
+      const product = await Product.findById(req.params.productId);
+      if(product.isVisibleOnUi == true){
+        product.isVisibleOnUi = false;
+      }
+      else{
+        product.isVisibleOnUi = true;
+      }
+      await product.save();
+      res.status(200).json("Product visibility updated successfully");
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'wrong!' });
+    }
+  });
+
+  router.post('/createCheckoutSession', async (req, res) => {
+    const {quantity, productPrice, productName, userId} = req.body;
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'inr',
+            product_data: {
+              name: productName,
+            },
+            unit_amount: Math.round(productPrice * 100),
+          },
+          quantity: quantity,
+        },
+      ],
+      mode: 'payment',
+      success_url: 'http://localhost:3000/success',
+      cancel_url: 'http://localhost:3000/cancel',
+    });
+    console.log('session', session);
+    res.json({ id: session.id});
+  });
+
+
+module.exports = router;

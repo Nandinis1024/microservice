@@ -23,6 +23,12 @@ const productValiditySchema = mongoose.Schema(
         validityOptionTitle: { 
             type: String
         },
+        createdBy: { 
+            type: String
+        },
+        updatedBy: { 
+            type: String
+        },
     },
     {
         timestamps: true,

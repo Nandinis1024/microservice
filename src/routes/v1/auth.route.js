@@ -3,6 +3,7 @@ const validate = require('../../middlewares/validate');
 const authValidation = require('../../validations/auth.validation');
 const authController = require('../../controllers/auth.controller');
 const auth = require('../../middlewares/auth');
+const User = require('../../models/user.model');
 
 const router = express.Router();
 
@@ -14,6 +15,13 @@ router.post('/forgot-password', validate(authValidation.forgotPassword), authCon
 router.post('/reset-password', validate(authValidation.resetPassword), authController.resetPassword);
 router.post('/send-verification-email', auth(), authController.sendVerificationEmail);
 router.post('/verify-email', validate(authValidation.verifyEmail), authController.verifyEmail);
+router.post('/getRole', async (req, res) => {
+    const user = await User.findOne({email: req.body.email});
+    if(!user){
+      return res.status(400).send('Email does not exist');  
+    }
+    res.status(200).json(user.role);
+  });
 
 module.exports = router;
 

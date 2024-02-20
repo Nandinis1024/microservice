@@ -7,6 +7,7 @@ const { Token } = require('../models');
 const ApiError = require('../utils/ApiError');
 const { tokenTypes } = require('../config/tokens');
 
+
 /**
  * Generate token
  * @param {ObjectId} userId
@@ -18,6 +19,7 @@ const { tokenTypes } = require('../config/tokens');
 const generateToken = (userId, expires, type, secret = config.jwt.secret) => {
   const payload = {
     sub: userId,
+    role: userId.role,
     iat: moment().unix(),
     exp: expires.unix(),
     type,

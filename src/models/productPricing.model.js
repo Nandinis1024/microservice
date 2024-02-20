@@ -29,6 +29,12 @@ const productPricingSchema = mongoose.Schema(
             type: Number,
             default: 0
         },
+        createdBy: { 
+            type: String
+        },
+        updatedBy: { 
+            type: String
+        },
     },
     {
         timestamps: true,

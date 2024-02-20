@@ -3,6 +3,7 @@ const httpStatus = require('http-status');
 const ApiError = require('../utils/ApiError');
 const { roleRights } = require('../config/roles');
 
+
 const verifyCallback = (req, resolve, reject, requiredRights) => async (err, user, info) => {
   if (err || info || !user) {
     return reject(new ApiError(httpStatus.UNAUTHORIZED, 'Please authenticate'));
@@ -16,9 +17,9 @@ const verifyCallback = (req, resolve, reject, requiredRights) => async (err, use
       return reject(new ApiError(httpStatus.FORBIDDEN, 'Forbidden'));
     }
   }
-
   resolve();
 };
+
 
 const auth = (...requiredRights) => async (req, res, next) => {
   return new Promise((resolve, reject) => {
@@ -27,5 +28,7 @@ const auth = (...requiredRights) => async (req, res, next) => {
     .then(() => next())
     .catch((err) => next(err));
 };
+
+
 
 module.exports = auth;
